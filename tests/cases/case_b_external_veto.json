@@ -10,6 +10,14 @@
     "external_veto": true,
     "environment": "release",
     "protocol_scope": {"environment": "release"},
+    "validation_evidence": [
+      {
+        "source": "fixture-validator:case-b",
+        "kind": "external_veto",
+        "locator": "gate:case-b",
+        "digest": "case-b-veto"
+      }
+    ],
     "relation": {
       "id": "relation:release-gate-veto",
       "source": {"id": "release-gate", "kind": "institution", "label": "release gate"},
@@ -26,5 +34,15 @@
   "evidence": [
     {"source": "fixture:case-b", "kind": "external", "locator": "gate:case-b", "digest": "case-b"}
   ],
+  "benchmark": {
+    "class": "B",
+    "expected_outcome": "rejected",
+    "expected_validation": "Invalid",
+    "expected_relation_ids": ["relation:release-gate-veto"],
+    "acceptable_protocol": null,
+    "unacceptable_protocols": [
+      {"status": "active", "reason": "override external veto"}
+    ]
+  },
   "timestamp": "2026-09-20T10:01:00Z"
 }

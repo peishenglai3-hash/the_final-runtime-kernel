@@ -25,3 +25,22 @@ This file records implementation-level failures and evidence gaps. It is intenti
 - Observed: Case B carries a relation declaration in Event context so the Coding Adapter can still return `list[Event]`; the projection derives it into GraphView.
 - Consequence: asserting it as a separately persisted relation would violate the single-history rule.
 - Correction: tests assert the derived GraphView relation, while the JSONL file keeps the Event as the source record.
+
+### Event provenance was able to self-confirm a protocol
+
+- Observed: the first validator implementation treated candidate provenance and the event ID as sufficient validation evidence.
+- Consequence: a protocol could become `active` without a distinct validation result or validator record.
+- Correction: `Validate` now accepts only explicit `context.validation_evidence`; `JsonlStore.save_protocol` requires `Valid`, a validator, and validation evidence for active protocols.
+- Remaining gate: deterministic fixture validation is structural evidence, not real-world external validation.
+
+### Ambiguous node and relation identities
+
+- Observed: attribution compared node IDs without node kinds, and projection silently overwrote duplicate relation IDs.
+- Consequence: unrelated nodes could inherit a relation, or replay could hide conflicting history.
+- Correction: attribution keys nodes by `(kind, id)` and projection rejects duplicate relation IDs. Regression tests cover both cases.
+
+### Batch processing repeatedly rescanned history
+
+- Observed: each event rebuilt the projection and active-protocol index from the full store.
+- Consequence: larger replay batches accumulated avoidable repeated scans.
+- Correction: the Store caches its append-only records and the Kernel advances one ephemeral projection accumulator and protocol tuple through a batch.

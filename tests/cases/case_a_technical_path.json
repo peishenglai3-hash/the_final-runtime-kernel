@@ -12,10 +12,31 @@
     "path": "C:\\repo\\src",
     "tool": "repository-tool",
     "suggested_action": {"kind": "normalize-path", "strategy": "respect the active platform"},
-    "evidence_locators": ["trace:case-a"]
+    "validation_evidence": [
+      {
+        "source": "fixture-validator:case-a",
+        "kind": "deterministic_validation",
+        "locator": "trace:case-a",
+        "digest": "case-a-validation"
+      }
+    ]
   },
   "evidence": [
     {"source": "fixture:case-a", "kind": "test_result", "locator": "trace:case-a", "digest": "case-a"}
   ],
+  "benchmark": {
+    "class": "A",
+    "expected_outcome": "committed",
+    "expected_validation": "Valid",
+    "expected_relation_ids": [],
+    "acceptable_protocol": {
+      "status": "active",
+      "action_kind": "normalize-path",
+      "scope_environment": "windows"
+    },
+    "unacceptable_protocols": [
+      {"status": "active", "action_kind": "ignore-path-mismatch"}
+    ]
+  },
   "timestamp": "2026-09-20T10:00:00Z"
 }

@@ -245,6 +245,7 @@ class Protocol:
         *,
         provenance: tuple[EvidenceRef, ...] | None = None,
         version: int | None = None,
+        validation: dict[str, Any] | None = None,
     ) -> Protocol:
         return Protocol(
             id=self.id,
@@ -252,7 +253,7 @@ class Protocol:
             action=self.action,
             scope=self.scope,
             required_evidence=self.required_evidence,
-            validation=self.validation,
+            validation=validation if validation is not None else self.validation,
             veto_conditions=self.veto_conditions,
             provenance=provenance if provenance is not None else self.provenance,
             status=status,

@@ -12,5 +12,5 @@
 
 ### Verification
 
-- Local unit and replay suite: 12 tests passed.
+- Local unit and replay suite: 17 tests passed.
 - Real-world empirical validation remains pending because no human-approved trace corpus was supplied with the implementation task.

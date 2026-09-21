@@ -10,10 +10,32 @@
     "environment": "institutional",
     "protocol_scope": {"environment": "institutional"},
     "rules": ["institutional.schema.v1"],
-    "suggested_action": {"kind": "preserve-provenance", "strategy": "separate declared and inferred evidence"}
+    "suggested_action": {"kind": "preserve-provenance", "strategy": "separate declared and inferred evidence"},
+    "validation_evidence": [
+      {
+        "source": "fixture-validator:case-c",
+        "kind": "deterministic_validation",
+        "locator": "record:case-c",
+        "digest": "case-c-validation"
+      }
+    ]
   },
   "evidence": [
     {"source": "fixture:case-c", "kind": "file", "locator": "record:case-c", "digest": "case-c"}
   ],
+  "benchmark": {
+    "class": "C",
+    "expected_outcome": "committed",
+    "expected_validation": "Valid",
+    "expected_relation_ids": [],
+    "acceptable_protocol": {
+      "status": "active",
+      "action_kind": "preserve-provenance",
+      "scope_environment": "institutional"
+    },
+    "unacceptable_protocols": [
+      {"status": "active", "action_kind": "discard-provenance"}
+    ]
+  },
   "timestamp": "2026-09-20T10:02:00Z"
 }

@@ -3,6 +3,7 @@ import json
 import unittest
 
 from tfrk.adapters import CodingAdapter
+from tfrk.model import NodeRef, Relation
 from tfrk.operators import Budget, OperatorSet
 from tfrk.projection import project
 
@@ -38,6 +39,21 @@ class OperatorTests(unittest.TestCase):
         candidate = ops.compile(friction, attribution, event, ())
         self.assertEqual(candidate.action["kind"], "reasoned-repair")
         self.assertEqual(candidate.confidence, 0.9)
+
+    def test_attribution_uses_node_kind_with_node_id(self) -> None:
+        raw = json.loads((CASES / "case_a_technical_path.json").read_text(encoding="utf-8"))
+        event = CodingAdapter().normalize(raw)[0]
+        colliding_relation = Relation(
+            id="relation:kind-collision",
+            source=NodeRef("developer", "tool"),
+            target=NodeRef("unrelated", "tool"),
+            kind="unrelated",
+        )
+        graph = project([event, colliding_relation])
+        ops = OperatorSet()
+        friction = ops.detect(event, graph, ())
+        attribution = ops.attribute(friction, graph, event)
+        self.assertNotIn("relation:kind-collision", attribution.relations)
 
 
 if __name__ == "__main__":

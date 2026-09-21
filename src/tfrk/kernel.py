@@ -6,7 +6,7 @@ from typing import Any, Protocol
 
 from .model import Event, EvidenceRef, jsonable
 from .operators import Budget, OperatorSet
-from .projection import project
+from .projection import _ProjectionAccumulator
 from .store import JsonlStore
 
 
@@ -35,10 +35,14 @@ class Kernel:
             raise TypeError("Adapter.normalize must return list[Event]")
 
         results: list[dict[str, Any]] = []
+        projection = _ProjectionAccumulator()
+        for item in self.store.list_history():
+            projection.add(item)
+        protocols = self.store.list_active_protocols()
         for event in events:
             self.store.append_event(event)
-            graph = project(self.store.list_history())
-            protocols = self.store.list_active_protocols()
+            projection.add(event)
+            graph = projection.view()
             friction = self.operators.detect(event, graph, protocols)
             if not friction.present:
                 results.append(
@@ -69,8 +73,28 @@ class Kernel:
             result["candidate"] = candidate.to_dict()
             result["validation"] = validation.to_dict()
             if validation.status == "Valid":
-                active = candidate.with_status("active")
+                provenance = tuple(dict.fromkeys(candidate.provenance + validation.evidence))
+                validation_record = dict(candidate.validation)
+                validation_record.update(
+                    {
+                        "validator": validation.validator,
+                        "result": validation.status,
+                        "evidence": [item.to_dict() for item in validation.evidence],
+                        "reasons": list(validation.reasons),
+                    }
+                )
+                active = candidate.with_status(
+                    "active",
+                    provenance=provenance,
+                    validation=validation_record,
+                )
                 self.store.save_protocol(active)
+                protocols = tuple(
+                    sorted(
+                        (*[item for item in protocols if item.id != active.id], active),
+                        key=lambda item: item.id,
+                    )
+                )
                 result["protocol"] = active.to_dict()
                 result["outcome"] = "committed"
             elif validation.status in {"Invalid", "NotApplicable"}:

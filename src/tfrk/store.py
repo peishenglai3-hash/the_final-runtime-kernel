@@ -16,6 +16,44 @@ class JsonlStore:
     def __init__(self, path: str | Path) -> None:
         self.path = Path(path)
         self.path.parent.mkdir(parents=True, exist_ok=True)
+        self._record_cache: list[dict[str, Any]] | None = None
+        self._event_ids: set[str] = set()
+        self._relation_ids: set[str] = set()
+        self._latest_protocols: dict[str, Protocol] = {}
+
+    def _load_cache(self) -> list[dict[str, Any]]:
+        if self._record_cache is not None:
+            return self._record_cache
+        records: list[dict[str, Any]] = []
+        if self.path.exists():
+            with self.path.open("r", encoding="utf-8") as stream:
+                for number, line in enumerate(stream, 1):
+                    if not line.strip():
+                        continue
+                    try:
+                        record = json.loads(line)
+                    except json.JSONDecodeError as exc:
+                        raise ValueError(f"invalid JSONL at {self.path}:{number}") from exc
+                    if not isinstance(record, dict) or not isinstance(record.get("payload"), dict):
+                        raise ValueError(f"invalid store record at {self.path}:{number}")
+                    records.append(record)
+        self._record_cache = records
+        for record in records:
+            self._index(record)
+        return records
+
+    def _index(self, record: dict[str, Any]) -> None:
+        kind = record.get("kind")
+        payload = record["payload"]
+        if kind == "event":
+            self._event_ids.add(str(payload["id"]))
+        elif kind == "relation":
+            self._relation_ids.add(str(payload["id"]))
+        elif kind == "protocol":
+            protocol = Protocol.from_dict(payload)
+            previous = self._latest_protocols.get(protocol.id)
+            if previous is None or protocol.version > previous.version:
+                self._latest_protocols[protocol.id] = protocol
 
     def _append(self, kind: str, payload: dict[str, Any]) -> None:
         record = {"kind": kind, "payload": payload}
@@ -24,29 +62,28 @@ class JsonlStore:
             stream.write(line + "\n")
             stream.flush()
             os.fsync(stream.fileno())
+        self._load_cache().append(record)
+        self._index(record)
 
     def _records(self) -> Iterator[dict[str, Any]]:
-        if not self.path.exists():
-            return
-        with self.path.open("r", encoding="utf-8") as stream:
-            for number, line in enumerate(stream, 1):
-                if not line.strip():
-                    continue
-                try:
-                    record = json.loads(line)
-                except json.JSONDecodeError as exc:
-                    raise ValueError(f"invalid JSONL at {self.path}:{number}") from exc
-                if not isinstance(record, dict) or not isinstance(record.get("payload"), dict):
-                    raise ValueError(f"invalid store record at {self.path}:{number}")
-                yield record
+        return iter(self._load_cache())
+
+    def reload(self) -> None:
+        """Reload after an external writer changes the append-only file."""
+        self._record_cache = None
+        self._event_ids.clear()
+        self._relation_ids.clear()
+        self._latest_protocols.clear()
 
     def append_event(self, event: Event) -> None:
-        if any(record.get("kind") == "event" and record["payload"].get("id") == event.id for record in self._records()):
+        self._load_cache()
+        if event.id in self._event_ids:
             raise ValueError(f"event already exists: {event.id}")
         self._append("event", event.to_dict())
 
     def append_relation(self, relation: Relation) -> None:
-        if any(record.get("kind") == "relation" and record["payload"].get("id") == relation.id for record in self._records()):
+        self._load_cache()
+        if relation.id in self._relation_ids:
             raise ValueError(f"relation already exists: {relation.id}")
         self._append("relation", relation.to_dict())
 
@@ -71,6 +108,17 @@ class JsonlStore:
             raise ValueError(
                 f"protocol version must increase: {protocol.id} {protocol.version} <= {latest.version}"
             )
+        if protocol.status == "active":
+            if not protocol.provenance:
+                raise ValueError("active protocol requires provenance")
+            if protocol.validation.get("result") != "Valid":
+                raise ValueError("active protocol requires a Valid validation result")
+            validator = protocol.validation.get("validator")
+            if not isinstance(validator, str) or not validator.strip():
+                raise ValueError("active protocol requires validator provenance")
+            validation_evidence = protocol.validation.get("evidence")
+            if not isinstance(validation_evidence, list) or not validation_evidence:
+                raise ValueError("active protocol requires validation evidence")
         self._append("protocol", protocol.to_dict())
 
     def protocol_history(self) -> tuple[Protocol, ...]:
@@ -81,18 +129,14 @@ class JsonlStore:
         )
 
     def latest_protocol(self, protocol_id: str) -> Protocol | None:
-        versions = [item for item in self.protocol_history() if item.id == protocol_id]
-        return max(versions, key=lambda item: item.version, default=None)
+        self._load_cache()
+        return self._latest_protocols.get(protocol_id)
 
     def list_active_protocols(self) -> tuple[Protocol, ...]:
-        latest: dict[str, Protocol] = {}
-        for protocol in self.protocol_history():
-            previous = latest.get(protocol.id)
-            if previous is None or protocol.version > previous.version:
-                latest[protocol.id] = protocol
+        self._load_cache()
         return tuple(
             sorted(
-                (protocol for protocol in latest.values() if protocol.status == "active"),
+                (protocol for protocol in self._latest_protocols.values() if protocol.status == "active"),
                 key=lambda item: item.id,
             )
         )

@@ -97,12 +97,14 @@ class ValidationResult:
     status: ValidationStatus
     evidence: tuple[EvidenceRef, ...]
     reasons: tuple[str, ...]
+    validator: str
 
     def to_dict(self) -> dict[str, Any]:
         return {
             "status": self.status,
             "evidence": [item.to_dict() for item in self.evidence],
             "reasons": list(self.reasons),
+            "validator": self.validator,
         }
 
 
@@ -166,11 +168,14 @@ class OperatorSet:
         node_ids = [event.actor.id]
         if event.target is not None:
             node_ids.append(event.target.id)
-        involved = set(node_ids)
+        involved = {(event.actor.kind, event.actor.id)}
+        if event.target is not None:
+            involved.add((event.target.kind, event.target.id))
         relation_ids = tuple(
             relation.id
             for relation in graph.relations
-            if relation.source.id in involved or relation.target.id in involved
+            if (relation.source.kind, relation.source.id) in involved
+            or (relation.target.kind, relation.target.id) in involved
         )
         rules = tuple(str(item) for item in event.context.get("rules", []))
         if node_ids or relation_ids or rules:
@@ -273,9 +278,10 @@ class OperatorSet:
         *,
         context: dict[str, Any],
     ) -> ValidationResult:
-        evidence = candidate.provenance
+        validator = str(context.get("validator_type", "deterministic-scope-evidence-v1"))
+        evidence = self._validation_evidence(context)
         if context.get("external_veto") is True:
-            return ValidationResult("Invalid", evidence, ("external veto is binding",))
+            return ValidationResult("Invalid", evidence or candidate.provenance, ("external veto is binding",), validator)
 
         environment = candidate.scope.get("environment")
         current_environment = context.get("environment")
@@ -284,20 +290,52 @@ class OperatorSet:
                 "NotApplicable",
                 evidence,
                 (f"scope environment {environment!r} does not match {current_environment!r}",),
+                validator,
             )
 
-        available = set(str(item) for item in context.get("evidence_locators", []))
-        available.update(item.locator for item in evidence)
-        available.add(f"event:{candidate.trigger.get('event_id')}")
+        if not evidence:
+            return ValidationResult(
+                "InsufficientEvidence",
+                (),
+                ("validator did not provide external EvidenceRef",),
+                validator,
+            )
+
+        available = {item.locator for item in evidence}
         missing = [item for item in candidate.required_evidence if item not in available]
         if missing:
-            return ValidationResult("InsufficientEvidence", evidence, [f"missing evidence: {item}" for item in missing])
+            return ValidationResult(
+                "InsufficientEvidence",
+                evidence,
+                tuple(f"missing evidence: {item}" for item in missing),
+                validator,
+            )
 
         requested = context.get("validation_status")
         if requested == "Invalid":
-            return ValidationResult("Invalid", evidence, ("context requested invalidation",))
+            return ValidationResult("Invalid", evidence, ("context requested invalidation",), validator)
         if requested == "NotApplicable":
-            return ValidationResult("NotApplicable", evidence, ("context marked protocol not applicable",))
+            return ValidationResult("NotApplicable", evidence, ("context marked protocol not applicable",), validator)
         if requested == "InsufficientEvidence":
-            return ValidationResult("InsufficientEvidence", evidence, ("context withheld sufficient evidence",))
-        return ValidationResult("Valid", evidence, ("scope and evidence checks passed",))
+            return ValidationResult(
+                "InsufficientEvidence",
+                evidence,
+                ("context withheld sufficient evidence",),
+                validator,
+            )
+        return ValidationResult("Valid", evidence, ("scope and evidence checks passed",), validator)
+
+    @staticmethod
+    def _validation_evidence(context: dict[str, Any]) -> tuple[EvidenceRef, ...]:
+        raw = context.get("validation_evidence", [])
+        if not isinstance(raw, list):
+            raise TypeError("context.validation_evidence must be a list")
+        evidence: list[EvidenceRef] = []
+        for item in raw:
+            if isinstance(item, EvidenceRef):
+                evidence.append(item)
+            elif isinstance(item, dict):
+                evidence.append(EvidenceRef.from_dict(item))
+            else:
+                raise TypeError("context.validation_evidence must contain EvidenceRef objects")
+        return tuple(evidence)

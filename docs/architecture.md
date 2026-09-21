@@ -12,7 +12,7 @@ The only V1.0 production path is:
 
 The project deliberately has one local Store, one Coding Adapter, five operator methods, and a fixed Kernel loop. `GraphView` is derived from history and is never a second current-state authority.
 
-The current workspace also contains `praxis-runtime`. TFRK is a separate repository and does not import its code, schemas, migrations, or fixtures. Praxis experience is used only as a planning lesson: preserve phase gates, evidence, reversibility, and explicit mismatch reporting.
+This repository is standalone and does not import code, schemas, migrations, or fixtures from another runtime. Any prior engineering experience is treated only as a planning lesson: preserve phase gates, evidence, reversibility, and explicit mismatch reporting.
 
 ## Module map
 
@@ -37,10 +37,11 @@ Dependency direction is one-way: model is foundational; Store and Projection con
 | Relation-first projection | GraphView derives nodes and relations | PASS |
 | Five replaceable operators | Deterministic operators plus callable Reasoner seam | PASS |
 | External veto cannot be self-overridden | Case B returns `Invalid` and no active protocol | PASS |
+| Event provenance cannot self-validate | Case A without `context.validation_evidence` remains pending | PASS |
 | Negative transfer is rejected | Case D returns `NotApplicable` | PASS |
 | Non-code semantic friction is supported | Case C commits a semantic protocol | PASS |
 | Full protocol lifecycle is reversible | Active version is retained when a new revoked version is appended | PASS |
-| Four benchmark classes | A-D replay fixtures and kernel tests | STRUCTURAL PASS |
+| Four benchmark classes | Explicit A-D metadata, replay fixtures, and kernel tests | STRUCTURAL PASS |
 | Real trace evidence | No source trace was supplied with this task | PENDING HUMAN INPUT |
 
 The four fixtures are explicitly replayable test data. They are not presented as real-world evidence and do not close the final empirical gate by themselves.
@@ -52,6 +53,7 @@ The four fixtures are explicitly replayable test data. They are not presented as
 - Adapter: one Coding Adapter.
 - Provider seam: one optional `StructuredReasoner` callable.
 - No database, ORM, graph database, plugin loader, multi-agent orchestrator, Web UI, or research-metric dependency.
+- Projection acceleration: one ephemeral in-memory accumulator is rebuilt from JSONL history and is never persisted as a second source of truth.
 
 ## Frozen decisions
 

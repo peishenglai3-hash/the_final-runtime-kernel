@@ -56,7 +56,14 @@ results = kernel.process({
     "action": "open-path",
     "expected": "C:/repo",
     "observed": "/workspace",
-    "context": {"environment": "windows"},
+    "context": {
+        "environment": "windows",
+        "validation_evidence": [{
+            "source": "human-approved-validator",
+            "kind": "test_result",
+            "locator": "trace:event-1"
+        }]
+    },
     "evidence": [{
         "source": "trace",
         "kind": "test_result",
@@ -91,13 +98,13 @@ V1.0 does not build a multi-Agent orchestrator, plugin system, Workflow Engine, 
 
 ## Source, authorship, and open development
 
-The repository keeps three layers separate: the user-supplied Bible is the source baseline; the Python implementation is an engineering proposal; tests and external review are evaluation evidence. The `lai-peisheng` integration and `laipeisheng-doctor` boundary are used here as authorship safeguards: source restoration and organization do not become an invented author quote, a fluent analogy does not become a settled theory, and the major conceptual jump remains open to human revision. The implementation side follows the corresponding engineering discipline of explicit scope, provenance, reversibility, and a human release gate.
+The repository keeps three layers separate: the user-supplied Bible is the source baseline; the Python implementation is an engineering proposal; tests and external review are evaluation evidence. The `laipeisheng` authoring boundary (implemented through the `lai-peisheng` integration) and `laipeisheng-doctor` review boundary are used here as authorship safeguards: source restoration and organization do not become an invented author quote, a fluent analogy does not become a settled theory, and the major conceptual jump remains open to human revision. The implementation side follows the corresponding engineering discipline of explicit scope, provenance, reversibility, and a human release gate.
 
 MIT licensing permits use, modification, forking, and redistribution. That openness does not remove provenance, security, labor, or responsibility. A public release should therefore keep the source boundary, test evidence, unresolved gaps, and rollback history visible.
 
 ## Verification status
 
-The current local acceptance packet covers JSON round trips, append-only history, projection rebuild, all five operator contracts, Cases A-D, external veto rejection, negative-transfer rejection, and protocol revocation. The remaining empirical gate is human-approved real traces and external validation; see [`docs/theory_limits.md`](docs/theory_limits.md) and [`docs/failure_cases.md`](docs/failure_cases.md).
+The current local acceptance packet covers JSON round trips, append-only history, projection rebuild, all five operator contracts, Cases A-D, explicit benchmark expectations, external veto rejection, negative-transfer rejection, validator-evidence enforcement, and protocol revocation. An active protocol cannot be committed from event provenance alone: it requires a distinct validator record and validation evidence. The remaining empirical gate is human-approved real traces and external validation; see [`docs/theory_limits.md`](docs/theory_limits.md) and [`docs/failure_cases.md`](docs/failure_cases.md).
 
 ## License
 

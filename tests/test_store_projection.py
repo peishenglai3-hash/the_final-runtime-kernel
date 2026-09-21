@@ -3,7 +3,7 @@ from pathlib import Path
 import tempfile
 import unittest
 
-from tfrk.model import Event, EvidenceRef, NodeRef, Relation
+from tfrk.model import Event, EvidenceRef, NodeRef, Protocol, Relation
 from tfrk.projection import project
 from tfrk.store import JsonlStore
 
@@ -34,8 +34,6 @@ class StoreProjectionTests(unittest.TestCase):
             self.assertEqual([relation.id for relation in first.relations], ["relation:1"])
 
     def test_protocol_revocation_is_append_only(self) -> None:
-        from tfrk.model import Protocol
-
         with tempfile.TemporaryDirectory() as directory:
             store = JsonlStore(Path(directory) / "history.jsonl")
             evidence = EvidenceRef("test", "test_result", "protocol:1")
@@ -45,7 +43,11 @@ class StoreProjectionTests(unittest.TestCase):
                 action={},
                 scope={},
                 required_evidence=("protocol:1",),
-                validation={},
+                validation={
+                    "result": "Valid",
+                    "validator": "unit-test-validator-v1",
+                    "evidence": [evidence.to_dict()],
+                },
                 veto_conditions=(),
                 provenance=(evidence,),
                 status="active",
@@ -56,6 +58,33 @@ class StoreProjectionTests(unittest.TestCase):
             self.assertEqual(revoked.status, "revoked")
             self.assertEqual(len(store.protocol_history()), 2)
             self.assertEqual(store.list_active_protocols(), ())
+
+    def test_active_protocol_requires_validation_evidence(self) -> None:
+        with tempfile.TemporaryDirectory() as directory:
+            store = JsonlStore(Path(directory) / "history.jsonl")
+            evidence = EvidenceRef("test", "test_result", "protocol:invalid")
+            protocol = Protocol(
+                id="protocol:invalid",
+                trigger={},
+                action={},
+                scope={},
+                required_evidence=("protocol:invalid",),
+                validation={},
+                veto_conditions=(),
+                provenance=(evidence,),
+                status="active",
+                version=1,
+            )
+            with self.assertRaisesRegex(ValueError, "Valid validation result"):
+                store.save_protocol(protocol)
+
+    def test_projection_rejects_duplicate_relation_ids(self) -> None:
+        actor = NodeRef("actor", "human")
+        target = NodeRef("target", "tool")
+        first = Relation("relation:duplicate", actor, target, "depends_on")
+        second = Relation("relation:duplicate", target, actor, "vetoes")
+        with self.assertRaisesRegex(ValueError, "duplicate relation id"):
+            project([first, second])
 
 
 if __name__ == "__main__":

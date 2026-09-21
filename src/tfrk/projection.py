@@ -40,32 +40,46 @@ def _context_relations(event: Event) -> Iterable[Relation]:
         yield Relation.from_dict(item)
 
 
-def project(history: Iterable[Event | Relation]) -> GraphView:
-    """Build a stable projection that can be recreated from the same history."""
+class _ProjectionAccumulator:
+    """Ephemeral projection builder; the JSONL history remains the authority."""
 
-    nodes: dict[tuple[str, str], NodeRef] = {}
-    relations: dict[str, Relation] = {}
-    event_ids: list[str] = []
+    def __init__(self) -> None:
+        self.nodes: dict[tuple[str, str], NodeRef] = {}
+        self.relations: dict[str, Relation] = {}
+        self.event_ids: list[str] = []
 
-    for item in history:
+    def add(self, item: Event | Relation) -> None:
         if isinstance(item, Event):
-            event_ids.append(item.id)
-            nodes[(item.actor.kind, item.actor.id)] = item.actor
+            self.event_ids.append(item.id)
+            self.nodes[(item.actor.kind, item.actor.id)] = item.actor
             if item.target is not None:
-                nodes[(item.target.kind, item.target.id)] = item.target
+                self.nodes[(item.target.kind, item.target.id)] = item.target
             for relation in _context_relations(item):
-                relations[relation.id] = relation
-                nodes[(relation.source.kind, relation.source.id)] = relation.source
-                nodes[(relation.target.kind, relation.target.id)] = relation.target
+                self._add_relation(relation)
         elif isinstance(item, Relation):
-            relations[item.id] = item
-            nodes[(item.source.kind, item.source.id)] = item.source
-            nodes[(item.target.kind, item.target.id)] = item.target
+            self._add_relation(item)
         else:
             raise TypeError(f"unsupported history item: {type(item).__name__}")
 
-    return GraphView(
-        nodes=tuple(nodes[key] for key in sorted(nodes)),
-        relations=tuple(relations[key] for key in sorted(relations)),
-        event_ids=tuple(event_ids),
-    )
+    def _add_relation(self, relation: Relation) -> None:
+        if relation.id in self.relations:
+            raise ValueError(f"duplicate relation id in history: {relation.id}")
+        self.relations[relation.id] = relation
+        self.nodes[(relation.source.kind, relation.source.id)] = relation.source
+        self.nodes[(relation.target.kind, relation.target.id)] = relation.target
+
+    def view(self) -> GraphView:
+        return GraphView(
+            nodes=tuple(self.nodes[key] for key in sorted(self.nodes)),
+            relations=tuple(self.relations[key] for key in sorted(self.relations)),
+            event_ids=tuple(self.event_ids),
+        )
+
+
+def project(history: Iterable[Event | Relation]) -> GraphView:
+    """Build a stable projection that can be recreated from the same history."""
+
+    accumulator = _ProjectionAccumulator()
+    for item in history:
+        accumulator.add(item)
+    return accumulator.view()
