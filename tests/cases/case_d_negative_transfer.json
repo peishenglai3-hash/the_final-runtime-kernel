@@ -1,0 +1,18 @@
+{
+  "id": "case-d-negative-transfer",
+  "actor": {"id": "developer", "kind": "human", "label": "developer"},
+  "target": {"id": "new-environment", "kind": "environment", "label": "new environment"},
+  "action": "reuse-path-protocol",
+  "expected": "portable",
+  "observed": "unknown",
+  "context": {
+    "friction_type": "execution",
+    "environment": "linux",
+    "protocol_scope": {"environment": "windows"},
+    "suggested_action": {"kind": "do-not-transfer", "strategy": "request new evidence in this environment"}
+  },
+  "evidence": [
+    {"source": "fixture:case-d", "kind": "test_result", "locator": "trace:case-d", "digest": "case-d"}
+  ],
+  "timestamp": "2026-09-20T10:03:00Z"
+}

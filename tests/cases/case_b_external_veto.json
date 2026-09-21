@@ -1,0 +1,30 @@
+{
+  "id": "case-b-external-veto",
+  "actor": {"id": "automation", "kind": "tool", "label": "automation"},
+  "target": {"id": "release-gate", "kind": "institution", "label": "release gate"},
+  "action": "promote-change",
+  "expected": "approved",
+  "observed": "denied",
+  "context": {
+    "friction_type": "permission",
+    "external_veto": true,
+    "environment": "release",
+    "protocol_scope": {"environment": "release"},
+    "relation": {
+      "id": "relation:release-gate-veto",
+      "source": {"id": "release-gate", "kind": "institution", "label": "release gate"},
+      "target": {"id": "automation", "kind": "tool", "label": "automation"},
+      "kind": "vetoes",
+      "attributes": {"veto_power": true},
+      "provenance": [
+        {"source": "fixture:case-b", "kind": "external", "locator": "gate:case-b", "digest": "case-b"}
+      ],
+      "valid_from": null,
+      "valid_to": null
+    }
+  },
+  "evidence": [
+    {"source": "fixture:case-b", "kind": "external", "locator": "gate:case-b", "digest": "case-b"}
+  ],
+  "timestamp": "2026-09-20T10:01:00Z"
+}

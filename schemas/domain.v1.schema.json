@@ -1,0 +1,96 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://github.com/peishenglai3-hash/the-final-runtime/schemas/domain.v1.schema.json",
+  "title": "The Final Runtime Kernel V1 domain contracts",
+  "type": "object",
+  "properties": {
+    "node": {"$ref": "#/$defs/nodeRef"},
+    "evidence": {"$ref": "#/$defs/evidenceRef"},
+    "event": {"$ref": "#/$defs/event"},
+    "relation": {"$ref": "#/$defs/relation"},
+    "protocol": {"$ref": "#/$defs/protocol"}
+  },
+  "$defs": {
+    "nodeRef": {
+      "type": "object",
+      "required": ["id", "kind"],
+      "properties": {
+        "id": {"type": "string", "minLength": 1},
+        "kind": {"type": "string", "minLength": 1},
+        "label": {"type": ["string", "null"]}
+      },
+      "additionalProperties": false
+    },
+    "evidenceRef": {
+      "type": "object",
+      "required": ["source", "kind", "locator"],
+      "properties": {
+        "source": {"type": "string", "minLength": 1},
+        "kind": {"type": "string", "minLength": 1},
+        "locator": {"type": "string", "minLength": 1},
+        "digest": {"type": ["string", "null"]}
+      },
+      "additionalProperties": false
+    },
+    "event": {
+      "type": "object",
+      "required": ["id", "actor", "action", "observed", "evidence", "timestamp"],
+      "properties": {
+        "id": {"type": "string", "minLength": 1},
+        "actor": {"$ref": "#/$defs/nodeRef"},
+        "action": {"type": "string", "minLength": 1},
+        "target": {"anyOf": [{"$ref": "#/$defs/nodeRef"}, {"type": "null"}]},
+        "context": {"type": "object"},
+        "expected": {},
+        "observed": {},
+        "evidence": {"type": "array", "items": {"$ref": "#/$defs/evidenceRef"}},
+        "timestamp": {"type": "string", "format": "date-time"}
+      },
+      "additionalProperties": false
+    },
+    "relation": {
+      "type": "object",
+      "required": ["id", "source", "target", "kind", "provenance"],
+      "properties": {
+        "id": {"type": "string", "minLength": 1},
+        "source": {"$ref": "#/$defs/nodeRef"},
+        "target": {"$ref": "#/$defs/nodeRef"},
+        "kind": {"type": "string", "minLength": 1},
+        "attributes": {"type": "object"},
+        "provenance": {"type": "array", "items": {"$ref": "#/$defs/evidenceRef"}},
+        "valid_from": {"type": ["string", "null"], "format": "date-time"},
+        "valid_to": {"type": ["string", "null"], "format": "date-time"}
+      },
+      "additionalProperties": false
+    },
+    "protocol": {
+      "type": "object",
+      "required": [
+        "id",
+        "trigger",
+        "action",
+        "scope",
+        "required_evidence",
+        "validation",
+        "veto_conditions",
+        "provenance",
+        "status",
+        "version"
+      ],
+      "properties": {
+        "id": {"type": "string", "minLength": 1},
+        "trigger": {"type": "object"},
+        "action": {"type": "object"},
+        "scope": {"type": "object"},
+        "required_evidence": {"type": "array", "items": {"type": "string"}},
+        "validation": {"type": "object"},
+        "veto_conditions": {"type": "array", "items": {"type": "object"}},
+        "provenance": {"type": "array", "items": {"$ref": "#/$defs/evidenceRef"}},
+        "status": {"enum": ["candidate", "active", "contested", "revoked"]},
+        "version": {"type": "integer", "minimum": 1},
+        "confidence": {"type": ["number", "null"], "minimum": 0, "maximum": 1}
+      },
+      "additionalProperties": false
+    }
+  }
+}

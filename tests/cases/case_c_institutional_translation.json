@@ -1,0 +1,19 @@
+{
+  "id": "case-c-institutional-translation",
+  "actor": {"id": "evaluator", "kind": "evaluator", "label": "evaluator"},
+  "target": {"id": "policy-record", "kind": "artifact", "label": "policy record"},
+  "action": "evaluate-record",
+  "expected": {"evidence": "declared", "rule": "v1"},
+  "observed": {"evidence": "inferred", "rule": "v1"},
+  "context": {
+    "friction_type": "semantic",
+    "environment": "institutional",
+    "protocol_scope": {"environment": "institutional"},
+    "rules": ["institutional.schema.v1"],
+    "suggested_action": {"kind": "preserve-provenance", "strategy": "separate declared and inferred evidence"}
+  },
+  "evidence": [
+    {"source": "fixture:case-c", "kind": "file", "locator": "record:case-c", "digest": "case-c"}
+  ],
+  "timestamp": "2026-09-20T10:02:00Z"
+}

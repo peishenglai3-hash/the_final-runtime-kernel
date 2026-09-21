@@ -1,0 +1,21 @@
+{
+  "id": "case-a-path-mismatch",
+  "actor": {"id": "developer", "kind": "human", "label": "developer"},
+  "target": {"id": "repository-tool", "kind": "tool", "label": "repository tool"},
+  "action": "open-path",
+  "expected": "C:\\repo\\src",
+  "observed": "/workspace/src",
+  "context": {
+    "friction_type": "execution",
+    "environment": "windows",
+    "protocol_scope": {"environment": "windows"},
+    "path": "C:\\repo\\src",
+    "tool": "repository-tool",
+    "suggested_action": {"kind": "normalize-path", "strategy": "respect the active platform"},
+    "evidence_locators": ["trace:case-a"]
+  },
+  "evidence": [
+    {"source": "fixture:case-a", "kind": "test_result", "locator": "trace:case-a", "digest": "case-a"}
+  ],
+  "timestamp": "2026-09-20T10:00:00Z"
+}
