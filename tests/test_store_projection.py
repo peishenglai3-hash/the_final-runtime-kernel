@@ -9,6 +9,26 @@ from tfrk.store import JsonlStore
 
 
 class StoreProjectionTests(unittest.TestCase):
+    def test_decision_record_is_not_duplicated_when_store_cache_is_cold(self) -> None:
+        with tempfile.TemporaryDirectory() as directory:
+            store = JsonlStore(Path(directory) / "history.jsonl")
+            candidate = Protocol(
+                id="protocol:pending",
+                trigger={},
+                action={},
+                scope={},
+                required_evidence=("event:1",),
+                validation={},
+                veto_conditions=(),
+                provenance=(),
+                status="candidate",
+                version=1,
+            )
+            store.record_pending(candidate, {"status": "InsufficientEvidence"})
+            self.assertEqual(len(store.decision_history()), 1)
+            store.reload()
+            self.assertEqual(len(store.decision_history()), 1)
+
     def test_history_rebuilds_the_same_graph_view(self) -> None:
         with tempfile.TemporaryDirectory() as directory:
             store = JsonlStore(Path(directory) / "history.jsonl")

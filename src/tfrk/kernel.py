@@ -28,6 +28,18 @@ class Kernel:
         self.store = store
         self.operators = operators or OperatorSet()
         self.budget = budget or Budget()
+        self._projection: _ProjectionAccumulator | None = None
+        self._projection_revision = -1
+
+    def _current_projection(self) -> _ProjectionAccumulator:
+        revision = self.store.history_revision
+        if self._projection is None or revision != self._projection_revision:
+            projection = _ProjectionAccumulator()
+            for item in self.store.list_history():
+                projection.add(item)
+            self._projection = projection
+            self._projection_revision = self.store.history_revision
+        return self._projection
 
     def process(self, raw_input: Any) -> tuple[dict[str, Any], ...]:
         events = self.adapter.normalize(raw_input)
@@ -35,13 +47,12 @@ class Kernel:
             raise TypeError("Adapter.normalize must return list[Event]")
 
         results: list[dict[str, Any]] = []
-        projection = _ProjectionAccumulator()
-        for item in self.store.list_history():
-            projection.add(item)
+        projection = self._current_projection()
         protocols = self.store.list_active_protocols()
         for event in events:
             self.store.append_event(event)
             projection.add(event)
+            self._projection_revision = self.store.history_revision
             graph = projection.view()
             friction = self.operators.detect(event, graph, protocols)
             if not friction.present:
