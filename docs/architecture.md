@@ -21,6 +21,7 @@ This repository is standalone and does not import code, schemas, migrations, or 
 | NodeRef, Event, Relation, EvidenceRef, Protocol | `src/tfrk/model.py` | `tests/test_model.py` |
 | Single replayable history and protocol versions | `src/tfrk/store.py` | `tests/test_store_projection.py`, `tests/test_replay.py` |
 | Derived relation projection | `src/tfrk/projection.py` | `tests/test_store_projection.py`, Case B |
+| Read-only weak-score exploration | `src/tfrk/exploration.py`, `src/tfrk/cli.py` | `tests/test_exploration.py` |
 | Detect, Attribute, Route, Compile, Validate | `src/tfrk/operators.py` | `tests/test_operators.py` |
 | Fixed orchestration loop | `src/tfrk/kernel.py` | `tests/test_kernel_cases.py`, `tests/test_replay.py` |
 | Coding trace normalization | `src/tfrk/adapters/coding.py` | Case A-D fixtures |
@@ -33,7 +34,7 @@ Dependency direction is one-way: model is foundational; Store and Projection con
 | Bible requirement | Local acceptance | Status |
 |---|---|---|
 | Frozen five-structure domain model | Dataclass round trips and validation | PASS |
-| Single historical source of truth | JSONL append-only history; projection rebuilt from history | PASS |
+| Single historical source of truth | JSONL append-only history; projection is ephemeral and revision-invalidated | PASS |
 | Relation-first projection | GraphView derives nodes and relations | PASS |
 | Five replaceable operators | Deterministic operators plus callable Reasoner seam | PASS |
 | External veto cannot be self-overridden | Case B returns `Invalid` and no active protocol | PASS |
@@ -53,7 +54,8 @@ The four fixtures are explicitly replayable test data. They are not presented as
 - Adapter: one Coding Adapter.
 - Provider seam: one optional `StructuredReasoner` callable.
 - No database, ORM, graph database, plugin loader, multi-agent orchestrator, Web UI, or research-metric dependency.
-- Projection acceleration: one ephemeral in-memory accumulator is rebuilt from JSONL history and is never persisted as a second source of truth.
+- Projection acceleration: each Kernel keeps one ephemeral accumulator, advances it for its own appended events, and rebuilds it when the Store history revision changes or `reload()` is called. It is never persisted as a second source of truth.
+- Advisory exploration is an optional read-only query over existing scored Relations. It does not join the fixed Kernel loop or mutate history.
 
 ## Frozen decisions
 

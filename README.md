@@ -32,12 +32,15 @@ $env:PYTHONPATH = "src"
 python -m unittest discover -s tests -v
 tfrk run tests/cases/case_a_technical_path.json --store .local\case-a.jsonl
 tfrk run tests/cases/case_b_external_veto.json --store .local\case-b.jsonl
+tfrk explore --store .local\case-a.jsonl --max-score 0.4 --top-k 3
 tfrk revoke protocol:case-a-path-mismatch:execution `
   --store .local\case-a.jsonl `
   --source human-review --kind human_confirmation --locator review:case-a
 ```
 
 Cases A-D are deterministic replay fixtures for the four Bible benchmark classes. They are explicitly not supplied real-world traces and must not be advertised as empirical evidence until a human-approved trace corpus and external validation are added.
+
+`tfrk explore` is a separate, read-only advisory query. It returns at most three existing relations with an explicit nonzero `attributes.score` below the configured cutoff and recorded provenance. Missing/zero scores and evidence-free relations are omitted. It neither invents links nor changes events, protocols, or Kernel decisions; a candidate is a prompt for human review, not a finding or validated innovation.
 
 ## Minimal API
 
@@ -82,6 +85,7 @@ src/tfrk/
   model.py                 frozen domain contracts and JSON conversion
   store.py                 one append-only JSONL Store
   projection.py            history -> GraphView
+  exploration.py           evidence-backed weak-score advisory query
   operators.py             Detect / Attribute / Route / Compile / Validate
   kernel.py                fixed explicit runtime loop
   adapters/coding.py       one Coding Adapter
@@ -104,7 +108,7 @@ MIT licensing permits use, modification, forking, and redistribution. That openn
 
 ## Verification status
 
-The current local acceptance packet covers JSON round trips, append-only history, projection rebuild, all five operator contracts, Cases A-D, explicit benchmark expectations, external veto rejection, negative-transfer rejection, validator-evidence enforcement, and protocol revocation. An active protocol cannot be committed from event provenance alone: it requires a distinct validator record and validation evidence. The remaining empirical gate is human-approved real traces and external validation; see [`docs/theory_limits.md`](docs/theory_limits.md) and [`docs/failure_cases.md`](docs/failure_cases.md).
+The current local acceptance packet covers JSON round trips, append-only history, projection replay/invalidation, all five operator contracts, advisory-query ranking and read-only behavior, Cases A-D, external veto rejection, negative-transfer rejection, validator-evidence enforcement, and protocol revocation. An active protocol cannot be committed from event provenance alone: it requires a distinct validator record and validation evidence. The remaining empirical gate is human-approved real traces and external validation; see [`docs/theory_limits.md`](docs/theory_limits.md) and [`docs/failure_cases.md`](docs/failure_cases.md).
 
 ## License
 
