@@ -44,3 +44,10 @@ This file records implementation-level failures and evidence gaps. It is intenti
 - Observed: each event rebuilt the projection and active-protocol index from the full store.
 - Consequence: larger replay batches accumulated avoidable repeated scans.
 - Correction: the Store caches its append-only records and the Kernel advances one ephemeral projection accumulator and protocol tuple through a batch.
+
+### Repeated Kernel calls replayed unchanged history
+
+- Observed: a new `Kernel.process` call rebuilt the graph projection from the complete history even when the same Kernel and Store had already processed that history.
+- Consequence: repeated short calls paid a full-history replay cost despite the existing append-only Store cache.
+- Correction: the Kernel now retains one ephemeral projection, advances it after its own appends, and rebuilds after the Store history revision changes or `reload()` invalidates the view. The JSONL file remains the only authority.
+- Remaining gate: this is a deterministic local optimization; no production workload or real trace latency claim is made.

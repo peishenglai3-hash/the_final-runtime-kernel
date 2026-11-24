@@ -1,4 +1,4 @@
-"""Small JSON CLI; it exposes the kernel without adding a workflow engine."""
+"""Small JSON CLI for the Kernel and read-only advisory exploration."""
 
 from __future__ import annotations
 
@@ -8,8 +8,10 @@ import sys
 from pathlib import Path
 
 from .adapters import CodingAdapter
+from .exploration import explore_low_score_relations
 from .kernel import Kernel
 from .model import EvidenceRef
+from .projection import project
 from .store import JsonlStore
 
 
@@ -20,6 +22,14 @@ def _parser() -> argparse.ArgumentParser:
     run = subparsers.add_parser("run", help="normalize and process a coding trace")
     run.add_argument("input", help="JSON file path or - for stdin")
     run.add_argument("--store", required=True, help="append-only JSONL store path")
+
+    explore = subparsers.add_parser(
+        "explore",
+        help="list evidence-backed weak relations for review without changing the store",
+    )
+    explore.add_argument("--store", required=True, help="append-only JSONL store path")
+    explore.add_argument("--max-score", type=float, default=0.4)
+    explore.add_argument("--top-k", type=int, default=3)
 
     revoke = subparsers.add_parser("revoke", help="revoke the latest active protocol version")
     revoke.add_argument("protocol_id")
@@ -33,6 +43,26 @@ def _parser() -> argparse.ArgumentParser:
 def main(argv: list[str] | None = None) -> int:
     args = _parser().parse_args(argv)
     store = JsonlStore(args.store)
+    if args.command == "explore":
+        graph = project(store.list_history())
+        candidates = explore_low_score_relations(
+            graph.relations,
+            max_score=args.max_score,
+            limit=args.top_k,
+        )
+        print(
+            json.dumps(
+                {
+                    "mode": "advisory",
+                    "activation": False,
+                    "candidates": [item.to_dict() for item in candidates],
+                },
+                ensure_ascii=False,
+                indent=2,
+            )
+        )
+        return 0
+
     kernel = Kernel(CodingAdapter(), store)
     if args.command == "run":
         raw = sys.stdin.read() if args.input == "-" else Path(args.input).read_text(encoding="utf-8")

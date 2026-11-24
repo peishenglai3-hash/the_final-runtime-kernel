@@ -20,6 +20,13 @@ class JsonlStore:
         self._event_ids: set[str] = set()
         self._relation_ids: set[str] = set()
         self._latest_protocols: dict[str, Protocol] = {}
+        self._history_revision = 0
+
+    @property
+    def history_revision(self) -> int:
+        """Revision for ephemeral history projections owned by this Store instance."""
+
+        return self._history_revision
 
     def _load_cache(self) -> list[dict[str, Any]]:
         if self._record_cache is not None:
@@ -56,14 +63,17 @@ class JsonlStore:
                 self._latest_protocols[protocol.id] = protocol
 
     def _append(self, kind: str, payload: dict[str, Any]) -> None:
+        records = self._load_cache()
         record = {"kind": kind, "payload": payload}
         line = json.dumps(record, ensure_ascii=False, sort_keys=True, separators=(",", ":"))
         with self.path.open("a", encoding="utf-8", newline="\n") as stream:
             stream.write(line + "\n")
             stream.flush()
             os.fsync(stream.fileno())
-        self._load_cache().append(record)
+        records.append(record)
         self._index(record)
+        if kind in {"event", "relation"}:
+            self._history_revision += 1
 
     def _records(self) -> Iterator[dict[str, Any]]:
         return iter(self._load_cache())
@@ -74,6 +84,7 @@ class JsonlStore:
         self._event_ids.clear()
         self._relation_ids.clear()
         self._latest_protocols.clear()
+        self._history_revision += 1
 
     def append_event(self, event: Event) -> None:
         self._load_cache()

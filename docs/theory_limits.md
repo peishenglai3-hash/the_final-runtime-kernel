@@ -11,6 +11,8 @@ This repository is an engineering implementation of a bounded V1.0 protocol. It 
 
 The code must not turn a smooth explanation into authorial proof. It records events, relations, evidence references, scope, validation, and revocation so that a later human can disagree with a protocol and preserve the disagreement.
 
+The optional low-score exploration command only surfaces already-recorded Relations with an explicit nonzero score and provenance. Its explanation reports the cutoff and evidence references; it does not create missing links, establish causality, validate a decision, or activate a protocol.
+
 ## Deliberately deferred
 
 Norm, Obligation, Trust, Negotiation, learned routing, graph learning, independent Transfer, multi-agent relational dynamics, multiple stores, plugin discovery, and Web UI remain semantic or research placeholders. Adding a class for any of them would change the V1.0 boundary and requires a new decision record.
